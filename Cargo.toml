@@ -1,12 +1,17 @@
 [package]
 name = "otel-arrow-hacking"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-arrow = "55.0.0"
-arrow-array = "55.0.0"
-arrow-schema = "55.0.0"
-object_store = "0.12.0"
-parquet = { version = "55.0.0", features = ["arrow", "async", "object_store"]}
+
+otel-arrow-rust = { path = "../otel-arrow/rust/otel-arrow-rust" }
+
+arrow = "53"
+arrow-array = "53"
+arrow-ipc = {version = "53", features = ["zstd"] }
+arrow-schema = "53"
+prost = "~0.13"
+# object_store = "0.11.0"
+# parquet = { version = "53.0.0", features = ["arrow", "async", "object_store"]}
 tokio = { version = "1", features = ["full"] }
