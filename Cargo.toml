@@ -11,7 +11,10 @@ arrow = "53"
 arrow-array = "53"
 arrow-ipc = {version = "53", features = ["zstd"] }
 arrow-schema = "53"
+env_logger = "0.11.8"
+datafusion = { version = "~43" }
 iceberg = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
+iceberg-datafusion = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
 iceberg-catalog-rest = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
 # iceberg-catalog-memory = "0.4.0"
 iceberg-catalog-sql = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}

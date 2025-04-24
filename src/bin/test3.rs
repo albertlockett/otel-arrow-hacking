@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
+use iceberg::TableIdent;
 use iceberg::arrow::arrow_schema_to_schema;
 use iceberg::io::{S3_ACCESS_KEY_ID, S3_ENDPOINT, S3_REGION, S3_SECRET_ACCESS_KEY};
 use iceberg::spec::DataFileFormat;
@@ -15,7 +16,6 @@ use iceberg::writer::{
         location_generator::{DefaultFileNameGenerator, DefaultLocationGenerator},
     },
 };
-use iceberg::TableIdent;
 use iceberg::{Catalog, NamespaceIdent, TableCreation, io::FileIOBuilder};
 // use iceberg_catalog_memory::MemoryCatalog;
 // use iceberg_catalog_sql::{SqlBindStyle, SqlCatalog, SqlCatalogConfig};
@@ -33,7 +33,10 @@ async fn main() {
     let config = RestCatalogConfig::builder()
         .uri("http://localhost:8181".to_string())
         .props(HashMap::from([
-            (S3_ENDPOINT.into(), format!("http://{}:{}", "127.0.0.1", 9000)),
+            (
+                S3_ENDPOINT.into(),
+                format!("http://{}:{}", "127.0.0.1", 9000),
+            ),
             (S3_ACCESS_KEY_ID.into(), "admin".into()),
             (S3_SECRET_ACCESS_KEY.into(), "password".into()),
             (S3_REGION.into(), "us-east-1".into()),
@@ -62,21 +65,20 @@ async fn main() {
     let iceberg_schema = arrow_schema_to_schema(&schema).unwrap();
 
     let ns_ident = NamespaceIdent::new("ns1".into());
-    // if catalog.namespace_exists(&ns_ident).await.unwrap() {
-    // let ns = catalog
-    //     .create_namespace(&ns_ident, HashMap::new())
-    //     .await
-    //     .unwrap();
+    let ns = catalog
+        .create_namespace(&ns_ident, HashMap::new())
+        .await
+        .unwrap();
     let ns = catalog.get_namespace(&ns_ident).await.unwrap();
 
     let table_creation = TableCreation::builder()
         .name("table1".into())
         .schema(iceberg_schema.clone())
         .build();
-    // let table = catalog
-    //     .create_table(ns.name(), table_creation)
-    //     .await
-    //     .unwrap();
+    let table = catalog
+        .create_table(ns.name(), table_creation)
+        .await
+        .unwrap();
     let table_ident = TableIdent::new(ns.name().clone(), "table1".into());
     let table = catalog.load_table(&table_ident).await.unwrap();
     println!("{:?}", table);
