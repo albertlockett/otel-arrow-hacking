@@ -1,5 +1,5 @@
-use std::io::Cursor;
 use arrow_ipc::reader::{FileReader, StreamReader};
+use std::io::Cursor;
 // use otel_arrow_rust::proto::opentelemetry::collector::trace::v1::ExportTraceServiceRequest;
 use otel_arrow_rust::opentelemetry::BatchArrowRecords;
 use prost::Message;
@@ -11,7 +11,9 @@ use tokio::{fs::File, io::AsyncReadExt};
 
 #[tokio::main]
 async fn main() {
-    let mut file = File::open("/Users/albertlockett/Development/otel-arrow/data/otlp_traces.json").await.unwrap();
+    let mut file = File::open("/Users/albertlockett/Development/otel-arrow/data/otlp_traces.json")
+        .await
+        .unwrap();
     let mut contents = vec![];
     file.read_to_end(&mut contents).await.unwrap();
 

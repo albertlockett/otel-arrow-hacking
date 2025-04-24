@@ -4,14 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-
+# local
 otel-arrow-rust = { path = "../otel-arrow/rust/otel-arrow-rust" }
-
+# external
 arrow = "53"
 arrow-array = "53"
 arrow-ipc = {version = "53", features = ["zstd"] }
 arrow-schema = "53"
+iceberg = "0.4.0"
+iceberg-catalog-memory = "0.4.0"
+object_store = "0.11.0"
+parquet = { version = "53.0.0", features = ["arrow", "async", "object_store"]}
 prost = "~0.13"
-# object_store = "0.11.0"
-# parquet = { version = "53.0.0", features = ["arrow", "async", "object_store"]}
 tokio = { version = "1", features = ["full"] }
