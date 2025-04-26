@@ -1,7 +1,7 @@
 use arrow_ipc::reader::{FileReader, StreamReader};
 use std::io::Cursor;
 // use otel_arrow_rust::proto::opentelemetry::collector::trace::v1::ExportTraceServiceRequest;
-use otel_arrow_rust::opentelemetry::BatchArrowRecords;
+use otel_arrow_rust::opentelemetry::{ArrowPayloadType, BatchArrowRecords};
 use prost::Message;
 use tokio::{fs::File, io::AsyncReadExt};
 
@@ -24,6 +24,11 @@ async fn main() {
     for payload in req.arrow_payloads {
         let cursor = Cursor::new(payload.record);
         let reader = StreamReader::try_new(cursor, None).unwrap();
+
+        println!("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+        println!("~~~~ schema id = {}", payload.schema_id);
+        println!("~~~~ type = {:?}", ArrowPayloadType::try_from(payload.r#type).unwrap());
+        println!("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
         for batch in reader {
             println!("{:?}", batch);

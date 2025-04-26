@@ -7,19 +7,33 @@ edition = "2024"
 # local
 otel-arrow-rust = { path = "../otel-arrow/rust/otel-arrow-rust" }
 # external
-arrow = "53"
-arrow-array = "53"
-arrow-ipc = {version = "53", features = ["zstd"] }
-arrow-schema = "53"
+# arrow = "53"
+# arrow-array = "53"
+# arrow-ipc = {version = "53", features = ["zstd"] }
+# arrow-schema = "53"
+arrow = { path = "../arrow-rs/arrow", features = ["prettyprint", "chrono-tz"]}
+arrow-ipc = { path = "../arrow-rs/arrow-ipc" , features = ["zstd"] }
+arrow-schema = { path = "../arrow-rs/arrow-schema" }
+arrow-array = { path = "../arrow-rs/arrow-array" }
+
 env_logger = "0.11.8"
-datafusion = { version = "~43" }
-iceberg = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
-iceberg-datafusion = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
-iceberg-catalog-rest = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
+# datafusion = { version = "~43" }
+# iceberg = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
+# iceberg-datafusion = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
+# iceberg-catalog-rest = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
 # iceberg-catalog-memory = "0.4.0"
-iceberg-catalog-sql = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
+# iceberg-catalog-sql = {git = "https://github.com/apache/iceberg-rust.git", tag="v0.4.0"}
 object_store = "0.11.0"
-parquet = { version = "53.0.0", features = ["arrow", "async", "object_store"]}
+# parquet = { version = "53.0.0", features = ["arrow", "async", "object_store"]}
+parquet = { path = "../arrow-rs/parquet", features = ["arrow", "async", "object_store"] }
+
 prost = "~0.13"
 sqlx = { version = "0.8.1", features = ["any", "sqlite", "migrate", "runtime-tokio"], default-features = false }
 tokio = { version = "1", features = ["full"] }
+
+# [patch.crates-io]
+# arrow = { path = "../arrow-rs/arrow" }
+# arrow-ipc = { path = "../arrow-rs/arrow-ipc" }
+# arrow-schema = { path = "../arrow-rs/arrow-schema" }
+# arrow-array = { path = "../arrow-rs/arrow-array" }
+# parquet = { path = "../arrow-rs/parquet", features = ["arrow", "async", "object_store"] }
