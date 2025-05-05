@@ -27,7 +27,10 @@ async fn main() {
 
         println!("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
         println!("~~~~ schema id = {}", payload.schema_id);
-        println!("~~~~ type = {:?}", ArrowPayloadType::try_from(payload.r#type).unwrap());
+        println!(
+            "~~~~ type = {:?}",
+            ArrowPayloadType::try_from(payload.r#type).unwrap()
+        );
         println!("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
         for batch in reader {

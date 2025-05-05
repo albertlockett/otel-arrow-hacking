@@ -1,18 +1,19 @@
-
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::sync::Arc;
 
 use arrow_ipc::reader::StreamReader;
-use iceberg::writer::base_writer::data_file_writer::DataFileWriterBuilder;
-use iceberg::{Catalog, NamespaceIdent, TableCreation, TableIdent};
 use iceberg::arrow::arrow_schema_to_schema;
 use iceberg::io::{S3_ACCESS_KEY_ID, S3_ENDPOINT, S3_REGION, S3_SECRET_ACCESS_KEY};
 use iceberg::spec::DataFileFormat;
 use iceberg::transaction::Transaction;
-use iceberg::writer::{IcebergWriter, IcebergWriterBuilder};
+use iceberg::writer::base_writer::data_file_writer::DataFileWriterBuilder;
 use iceberg::writer::file_writer::ParquetWriterBuilder;
-use iceberg::writer::file_writer::location_generator::{DefaultFileNameGenerator, DefaultLocationGenerator};
+use iceberg::writer::file_writer::location_generator::{
+    DefaultFileNameGenerator, DefaultLocationGenerator,
+};
+use iceberg::writer::{IcebergWriter, IcebergWriterBuilder};
+use iceberg::{Catalog, NamespaceIdent, TableCreation, TableIdent};
 use iceberg_catalog_rest::{RestCatalog, RestCatalogConfig};
 use otel_arrow_rust::opentelemetry::{ArrowPayloadType, BatchArrowRecords};
 use parquet::file::properties::WriterProperties;
@@ -33,8 +34,14 @@ async fn main() {
         .uri(ICEBERG_CATALOG_REST_URI.into())
         .props(HashMap::from([
             (S3_ENDPOINT.into(), ICEBERG_CATALOG_S3_ENDPOINT.into()),
-            (S3_ACCESS_KEY_ID.into(), ICEBERG_CATALOG_S3_ACCESS_KEY_ID.into()),
-            (S3_SECRET_ACCESS_KEY.into(), ICEBERG_CATALOG_S3_SECRET_ACCESS_KEY.into()),
+            (
+                S3_ACCESS_KEY_ID.into(),
+                ICEBERG_CATALOG_S3_ACCESS_KEY_ID.into(),
+            ),
+            (
+                S3_SECRET_ACCESS_KEY.into(),
+                ICEBERG_CATALOG_S3_SECRET_ACCESS_KEY.into(),
+            ),
             (S3_REGION.into(), ICEBERG_CATALOG_S3_REGION.into()),
         ]))
         .build();
@@ -45,10 +52,13 @@ async fn main() {
         Ok(namespace) => namespace,
         Err(e) => {
             println!("error getting ns {:?}", e);
-            catalog.create_namespace(&ns_ident, HashMap::new()).await.unwrap()
+            catalog
+                .create_namespace(&ns_ident, HashMap::new())
+                .await
+                .unwrap()
         }
     };
-    
+
     let mut file = File::open(OTAP_SAMPLES_PATH).await.unwrap();
     let mut contents = vec![];
     file.read_to_end(&mut contents).await.unwrap();
@@ -64,16 +74,18 @@ async fn main() {
             let record_batch = record_batch.unwrap();
             let schema = record_batch.schema();
             let iceberg_schema = arrow_schema_to_schema(&schema).unwrap();
-            
+
             let table_ident = TableIdent::new(ns.name().clone(), table_name.clone());
             // create table if doesn't exist
             if !catalog.table_exists(&table_ident).await.unwrap() {
-                
                 let table_creation = TableCreation::builder()
                     .name(table_name.clone())
                     .schema(iceberg_schema.clone())
                     .build();
-                catalog.create_table(ns.name(), table_creation).await.unwrap();
+                catalog
+                    .create_table(ns.name(), table_creation)
+                    .await
+                    .unwrap();
             }
 
             let table = catalog.load_table(&table_ident).await.unwrap();
@@ -94,13 +106,8 @@ async fn main() {
             let mut txn = Transaction::new(&table)
                 .fast_append(None, Vec::new())
                 .unwrap();
-            txn.add_data_files(data_files)
-                .unwrap();
-            txn.apply().await.unwrap()
-                .commit(&catalog)
-                .await
-                .unwrap();
-
+            txn.add_data_files(data_files).unwrap();
+            txn.apply().await.unwrap().commit(&catalog).await.unwrap();
         }
     }
 }
