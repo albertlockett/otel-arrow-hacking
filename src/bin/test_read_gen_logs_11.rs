@@ -1,7 +1,7 @@
 use arrow_ipc::reader::StreamReader;
-use std::io::Cursor;
 use otel_arrow_rust::opentelemetry::{ArrowPayloadType, BatchArrowRecords};
 use prost::Message;
+use std::io::Cursor;
 use tokio::{fs::File, io::AsyncReadExt};
 
 #[tokio::main]

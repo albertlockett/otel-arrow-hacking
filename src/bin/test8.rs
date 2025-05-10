@@ -15,8 +15,8 @@ use tokio::io::AsyncReadExt;
 
 const BASE_PARQUET_DIR: &str = "/Users/albertlockett/Desktop/parquet_files";
 // const OTAP_SAMPLES_PATH: &str = "/Users/albertlockett/Development/otel-arrow/data/otap_logs.pb";
-const OTAP_SAMPLES_PATH: &str = "/Users/albertlockett/Development/otel-arrow/data/otap_metrics.pb";
-// const OTAP_SAMPLES_PATH: &str = "/Users/albertlockett/Development/otel-arrow/data/otap_traces.pb";
+// const OTAP_SAMPLES_PATH: &str = "/Users/albertlockett/Development/otel-arrow/data/otap_metrics.pb";
+const OTAP_SAMPLES_PATH: &str = "/Users/albertlockett/Development/otel-arrow/data/otap_traces.pb";
 // const OTAP_SAMPLES_PATH: &str = "/Users/albertlockett/Development/otel-arrow/data/otlp_logs.pb";
 // const OTAP_SAMPLES_PATH: &str = "/Users/albertlockett/Development/otel-arrow/data/otlp_metrics.pb";
 
@@ -45,10 +45,11 @@ async fn main() {
             continue;
         }
         let batch1 = batch1.unwrap();
+        println!("{}", pretty_format_batches(&[batch1.clone()]).unwrap());
 
         let schema = batch1.schema();
 
-        // println!("table {} has schema:\n{:#?}", table_name, schema);
+        println!("table {} has schema:\n{:#?}", table_name, schema);
 
         let path = Path::from(format!("{}/data.parquet", table_name));
         let parquet_object_writer = ParquetObjectWriter::new(object_store.clone(), path);

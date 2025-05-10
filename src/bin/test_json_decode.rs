@@ -8,11 +8,12 @@ use serde::Deserialize;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
-const OTAP_SAMPLES_PATH: &str = "/Users/albertlockett/Development/otel-arrow/data/otap_metrics.json.zst";
+const OTAP_SAMPLES_PATH: &str =
+    "/Users/albertlockett/Development/otel-arrow/data/otap_metrics.json.zst";
 
 #[derive(Deserialize)]
 pub struct BatchArrowRecords2 {
-    arrow_payloads: Vec<ArrowPayload2>
+    arrow_payloads: Vec<ArrowPayload2>,
 }
 
 #[derive(Deserialize)]
@@ -36,15 +37,17 @@ async fn main() {
         println!("{}", line);
         let bar2: BatchArrowRecords2 = serde_json::from_str(&line).unwrap();
 
-        let bar  = BatchArrowRecords {
+        let bar = BatchArrowRecords {
             batch_id: 0,
-            arrow_payloads: bar2.arrow_payloads.into_iter().map(|ap| {
-                ArrowPayload {
+            arrow_payloads: bar2
+                .arrow_payloads
+                .into_iter()
+                .map(|ap| ArrowPayload {
                     schema_id: ap.schema_id,
                     r#type: ap.t,
                     record: BASE64_STANDARD.decode(ap.record).unwrap(),
-                }
-            }).collect(),
+                })
+                .collect(),
             headers: vec![],
         };
 

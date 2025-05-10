@@ -1,8 +1,8 @@
-use datafusion::prelude::*;
 use datafusion::arrow::array::{Int32Array, StringArray};
 use datafusion::arrow::datatypes::{DataType, Field, Schema};
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::MemTable;
+use datafusion::prelude::*;
 use std::sync::Arc;
 
 #[tokio::main]
@@ -45,8 +45,8 @@ async fn main() -> datafusion::error::Result<()> {
     let joined_df = df_people.join(
         df_orders,
         JoinType::Inner,
-        &["id"],         // left join key
-        &["person_id"],  // right join key
+        &["id"],        // left join key
+        &["person_id"], // right join key
         None,
     )?;
 
