@@ -79,6 +79,7 @@ async fn main() {
     let object_store = Arc::new(LocalFileSystem::new_with_prefix("/tmp").unwrap());
 
     if let Some(rb) = otap_batch.get(ArrowPayloadType::Logs) {
+        println!("{:#?}", rb.schema());
         export_to_parquet(rb, "logs.parquet", object_store.clone()).await;
     }
     if let Some(rb) = otap_batch.get(ArrowPayloadType::LogAttrs) {
@@ -105,7 +106,7 @@ async fn main() {
     // Note don't select trace_id & span_id from parquet, there's some bug reading those
 
     let data_frame = ctx
-        .sql("select id, time_unix_nano, body from pq_logs")
+        .sql("select id, time_unix_nano, body, trace_id from pq_logs")
         .await
         .unwrap();
     let batches = data_frame.collect().await.unwrap();
