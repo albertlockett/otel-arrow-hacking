@@ -2246,7 +2246,9 @@ dependencies = [
  "arrow-array",
  "arrow-ipc",
  "datafusion",
+ "object_store",
  "otel-arrow-rust",
+ "parquet",
  "prost",
  "tokio",
 ]
@@ -2254,6 +2256,7 @@ dependencies = [
 [[package]]
 name = "otel-arrow-rust"
 version = "0.1.0"
+source = "git+https://github.com/albertlockett/otel-arrow?rev=9155b281d00ff67cb64cbe25672d6fea05c9a404#9155b281d00ff67cb64cbe25672d6fea05c9a404"
 dependencies = [
  "arrow",
  "arrow-ipc",
@@ -2276,6 +2279,7 @@ dependencies = [
 [[package]]
 name = "otlp-derive"
 version = "0.1.0"
+source = "git+https://github.com/albertlockett/otel-arrow?rev=9155b281d00ff67cb64cbe25672d6fea05c9a404#9155b281d00ff67cb64cbe25672d6fea05c9a404"
 dependencies = [
  "convert_case",
  "otlp-model",
@@ -2287,6 +2291,7 @@ dependencies = [
 [[package]]
 name = "otlp-model"
 version = "0.1.0"
+source = "git+https://github.com/albertlockett/otel-arrow?rev=9155b281d00ff67cb64cbe25672d6fea05c9a404#9155b281d00ff67cb64cbe25672d6fea05c9a404"
 dependencies = [
  "tonic-build",
 ]
