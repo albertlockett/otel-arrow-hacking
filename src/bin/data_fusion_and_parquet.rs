@@ -1,4 +1,3 @@
-
 use std::sync::Arc;
 
 use arrow::datatypes::UInt16Type;
@@ -8,17 +7,17 @@ use datafusion::prelude::{ParquetReadOptions, SessionContext};
 use datafusion::sql::TableReference;
 use object_store::local::LocalFileSystem;
 use object_store::path::Path;
-use parquet::arrow::async_writer::ParquetObjectWriter;
 use parquet::arrow::AsyncArrowWriter;
+use parquet::arrow::async_writer::ParquetObjectWriter;
 use parquet::file::properties::WriterProperties;
 use prost::Message;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
-use otel_arrow_rust::otap::{from_record_messages, OtapBatch};
-use otel_arrow_rust::otap::transform::{remove_delta_encoding, sort_by_parent_id};
-use otel_arrow_rust::proto::opentelemetry::arrow::v1::{ArrowPayloadType, BatchArrowRecords};
 use otel_arrow_rust::Consumer;
+use otel_arrow_rust::otap::transform::{remove_delta_encoding, sort_by_parent_id};
+use otel_arrow_rust::otap::{OtapBatch, from_record_messages};
+use otel_arrow_rust::proto::opentelemetry::arrow::v1::{ArrowPayloadType, BatchArrowRecords};
 use otel_arrow_rust::schema::consts;
 
 // will need to have ran:
@@ -44,7 +43,7 @@ async fn main() {
     if let Some(rb) = otap_batch.get(ArrowPayloadType::LogAttrs) {
         ctx.register_batch("log_attrs", rb.clone()).unwrap();
     }
-    
+
     let data_frame = ctx.sql("select * from logs limit 10").await.unwrap();
     let batches = data_frame.collect().await.unwrap();
     println!("Logs:");
@@ -55,7 +54,9 @@ async fn main() {
     println!("\nAttributes:");
     print_batches(&batches).unwrap();
 
-    let data_frame = ctx.sql("
+    let data_frame = ctx
+        .sql(
+            "
         select 
             logs.id,
             logs.time_unix_nano,
@@ -66,37 +67,54 @@ async fn main() {
         where
             log_attrs.key == 'hostname' and
             log_attrs.type = 1 -- Str
-    ").await.unwrap();
+    ",
+        )
+        .await
+        .unwrap();
     let batches = data_frame.collect().await.unwrap();
     println!("\nExample join in memory:");
     print_batches(&batches).unwrap();
 
-
     // Write record batches to parquet
     let object_store = Arc::new(LocalFileSystem::new_with_prefix("/tmp").unwrap());
-    
+
     if let Some(rb) = otap_batch.get(ArrowPayloadType::Logs) {
         export_to_parquet(rb, "logs.parquet", object_store.clone()).await;
-
     }
     if let Some(rb) = otap_batch.get(ArrowPayloadType::LogAttrs) {
         export_to_parquet(rb, "log_attrs.parquet", object_store.clone()).await;
-
     }
 
     // register parquet tables
-    ctx.register_parquet(TableReference::bare("pq_logs"), "/tmp/logs.parquet", ParquetReadOptions::default()).await.unwrap();
-    ctx.register_parquet(TableReference::bare("pq_log_attrs"), "/tmp/log_attrs.parquet", ParquetReadOptions::default()).await.unwrap();
+    ctx.register_parquet(
+        TableReference::bare("pq_logs"),
+        "/tmp/logs.parquet",
+        ParquetReadOptions::default(),
+    )
+    .await
+    .unwrap();
+    ctx.register_parquet(
+        TableReference::bare("pq_log_attrs"),
+        "/tmp/log_attrs.parquet",
+        ParquetReadOptions::default(),
+    )
+    .await
+    .unwrap();
 
     // run some example queries
-    // Note don't select trace_id & span_id from parquet, there's some bug reading those 
-    
-    let data_frame = ctx.sql("select id, time_unix_nano, body from pq_logs").await.unwrap();
+    // Note don't select trace_id & span_id from parquet, there's some bug reading those
+
+    let data_frame = ctx
+        .sql("select id, time_unix_nano, body from pq_logs")
+        .await
+        .unwrap();
     let batches = data_frame.collect().await.unwrap();
     println!("\n Parquet logs:");
     print_batches(&batches).unwrap();
 
-    let data_frame = ctx.sql("
+    let data_frame = ctx
+        .sql(
+            "
         select
             pq_logs.id, 
             pq_logs.time_unix_nano,
@@ -108,8 +126,10 @@ async fn main() {
         where
             pq_log_attrs.str == 'host2.org' and
             pq_log_attrs.key == 'hostname'
-        "
-    ).await.unwrap();
+        ",
+        )
+        .await
+        .unwrap();
     let batches = data_frame.collect().await.unwrap();
     println!("\nExample join parquet:");
     print_batches(&batches).unwrap();
@@ -121,7 +141,6 @@ async fn read_batch_arrow_record(path: &str) -> BatchArrowRecords {
     file.read_to_end(&mut contents).await.unwrap();
     BatchArrowRecords::decode(contents.as_ref()).unwrap()
 }
-
 
 fn optimize_record_batches(otap_batch: &mut OtapBatch) {
     if let Some(rb) = otap_batch.get(ArrowPayloadType::Logs) {
@@ -144,16 +163,15 @@ fn optimize_record_batches(otap_batch: &mut OtapBatch) {
     }
 }
 
-
 async fn export_to_parquet(batch: &RecordBatch, path: &str, object_store: Arc<LocalFileSystem>) {
-    let parquet_object_writer =
-        ParquetObjectWriter::new(object_store.clone(), Path::from(path));
+    let parquet_object_writer = ParquetObjectWriter::new(object_store.clone(), Path::from(path));
 
     let mut parquet_writer = AsyncArrowWriter::try_new(
         parquet_object_writer,
         batch.schema().clone(),
         Some(WriterProperties::default()),
-    ).unwrap();
+    )
+    .unwrap();
 
     parquet_writer.write(batch).await.unwrap();
     parquet_writer.close().await.unwrap();
