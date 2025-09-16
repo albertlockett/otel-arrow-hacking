@@ -1,0 +1,158 @@
+  #[tokio::test]
+    async fn test_multi_client_same_connection() {
+        /*
+        # 1. Create a CA key & self-signed cert
+        openssl genrsa -out ca.key 4096
+        openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 \
+          -subj "/C=US/ST=NY/L=NY/O=Example CA/CN=example-root-ca" \
+          -out ca.crt
+
+        # 2. Create server key + CSR (with SAN)
+        openssl genrsa -out server.key 2048
+        openssl req -new -key server.key -subj "/CN=albert.ca" -out server.csr
+
+        # Create a config for SAN (server must have DNS SAN for hostname verification)
+        cat >server_ext.cnf <<EOF
+        authorityKeyIdentifier=keyid,issuer
+        basicConstraints=CA:FALSE
+        subjectAltName = @alt_names
+
+        [alt_names]
+        DNS.1 = albert.ca
+        EOF
+
+        # Sign server CSR with CA
+        openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
+          -out server.crt -days 365 -sha256 -extfile server_ext.cnf
+
+        # 3. Create client key + CSR
+        openssl genrsa -out client.key 2048
+        openssl req -new -key client.key -subj "/CN=client" -out client.csr
+
+        # Sign client CSR with CA (client cert)
+        openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
+          -out client.crt -days 365 -sha256
+
+        */
+
+        env_logger::init();
+
+        let (sender, mut receiver) = tokio::sync::mpsc::channel(32);
+        let server_join_handle = tokio::spawn(async move {
+            let cert = tokio::fs::read("/Users/a.lockett/Desktop/cert_example/server.crt")
+                .await
+                .unwrap();
+            let key = tokio::fs::read("/Users/a.lockett/Desktop/cert_example/server.key")
+                .await
+                .unwrap();
+            let server_identity = tonic::transport::Identity::from_pem(cert, key);
+            let mut tls = tonic::transport::ServerTlsConfig::new().identity(server_identity);
+
+            let client_ca = tokio::fs::read("/Users/a.lockett/Desktop/cert_example/ca.crt")
+                .await
+                .unwrap();
+            let client_ca_cert = tonic::transport::Certificate::from_pem(client_ca);
+            tls = tls.client_ca_root(client_ca_cert);
+
+            let logs_svc = LogsServiceServer::new(LogsServiceMock::new(sender.clone()));
+            let traces_svc = TraceServiceServer::new(TraceServiceMock::new(sender.clone()));
+
+            println!("starting server");
+            Server::builder()
+                .tls_config(tls)
+                .unwrap()
+                .add_service(logs_svc)
+                .add_service(traces_svc)
+                .serve("127.0.0.1:14317".parse().unwrap())
+                .await
+                .unwrap();
+        });
+
+        let (sender2, mut receiver2) = tokio::sync::mpsc::channel(32);
+
+        #[allow(dead_code)]
+        #[derive(Debug)]
+        enum Resp {
+            Log(otel_arrow_rust::proto::opentelemetry::collector::logs::v1::ExportLogsServiceResponse),
+            Trace(otel_arrow_rust::proto::opentelemetry::collector::trace::v1::ExportTraceServiceResponse)
+        }
+        let client_join_handle = tokio::spawn(async move {
+            let client_ca = tokio::fs::read("/Users/a.lockett/Desktop/cert_example/ca.crt")
+                .await
+                .unwrap();
+            let ca_cert = tonic::transport::Certificate::from_pem(client_ca);
+
+            let mut tls_config = tonic::transport::ClientTlsConfig::new()
+                .ca_certificate(ca_cert)
+                .domain_name("albert.ca"); // must match server cert SAN/CN
+
+            let client_cert = tokio::fs::read("/Users/a.lockett/Desktop/cert_example/client.crt")
+                .await
+                .unwrap();
+            let client_key = tokio::fs::read("/Users/a.lockett/Desktop/cert_example/client.key")
+                .await
+                .unwrap();
+            let client_identity = tonic::transport::Identity::from_pem(client_cert, client_key);
+            tls_config = tls_config.identity(client_identity);
+
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            println!("going to try connecting");
+            let channel = tonic::transport::Channel::from_static("https://127.0.0.1:14317")
+                .tls_config(tls_config)
+                .unwrap()
+                .connect()
+                .await
+                .unwrap();
+
+            println!("connected");
+
+            let mut svc1_client = LogsServiceClient::new(channel.clone());
+            let mut svc2_client = TraceServiceClient::new(channel.clone());
+
+            let logs_resp = svc1_client.export(otel_arrow_rust::proto::opentelemetry::collector::logs::v1::ExportLogsServiceRequest {
+                ..Default::default()
+            }).await.unwrap();
+            sender2
+                .send(Resp::Log(logs_resp.into_inner()))
+                .await
+                .unwrap();
+
+            let traces_resp = svc2_client.export(otel_arrow_rust::proto::opentelemetry::collector::trace::v1::ExportTraceServiceRequest {
+                ..Default::default()
+            }).await.unwrap();
+            sender2
+                .send(Resp::Trace(traces_resp.into_inner()))
+                .await
+                .unwrap();
+
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        });
+
+        tokio::select! {
+            server_exit = server_join_handle => {
+                println!("server exited w/ {:?}", server_exit.unwrap())
+            }
+            client_exit = client_join_handle => {
+                println!("client exited w/ {:?}", client_exit.unwrap())
+            }
+
+            // print requests
+            _ = async move {
+                while let Some(req) = receiver.recv().await {
+                    println!("server received message {:?}", req)
+                }
+            } => {
+                println!("no more req messages")
+            }
+
+            // print responses
+            _ = async move {
+                while let Some(res) = receiver2.recv().await {
+                    println!("client received response {:?}", res)
+                }
+            } => {
+                println!("no more res message")
+            }
+
+        }
+    }
